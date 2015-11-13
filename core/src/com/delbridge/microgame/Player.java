@@ -27,6 +27,7 @@ public class Player {
         pulse = 0f;
         pulseRipples = new ArrayList<>();
         speed = 5;
+
     }
 
     public void update(float dt){
