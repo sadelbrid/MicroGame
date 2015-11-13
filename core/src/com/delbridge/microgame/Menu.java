@@ -91,10 +91,10 @@ public class Menu extends State {
 
     @Override
     public void dispose() {
-        bg.dispose();
+        //bg.dispose();
         vignette.dispose();
         sr.dispose();
-        title.dispose();
+        //title.dispose();
     }
 
     private class Shimmer{
