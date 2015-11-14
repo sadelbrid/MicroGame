@@ -7,7 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import java.util.ArrayList;
 
 /**
- * Created by Seth on 8/10/15.
+ * Represents a game state: menu, play, pause, gameover, etc
  */
 public abstract class State {
     protected OrthographicCamera cam;

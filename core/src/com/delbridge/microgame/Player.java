@@ -6,41 +6,49 @@ import com.badlogic.gdx.math.Vector2;
 import java.util.ArrayList;
 
 /**
- * Created by Seth on 8/10/15.
+ * Player class. Represents the white blood cell.
+ * Vector2s hold position and velocity
+ * radius is the radius of the circle
+ * pulse is radians that add to the main radius when drawn
+ * acceleration is the rate velocity is changed
+ *
  */
 public class Player {
     public int maxMovement = 100;
-    public int movement;
     private Vector2 position;
     private Vector2 velocity;
     public float rotation;
     public float radius;
     public float pulse;
-    public int speed;
+    public int acceleration;
     ArrayList<Pulse> pulseRipples;
     public Player(int w, int h){
         position = new Vector2(w/2, h/2);
         velocity = new Vector2(0, 0);
         rotation = 0f;
-        movement = 0;
         radius = h*.05f;
         pulse = 0f;
         pulseRipples = new ArrayList<>();
-        speed = 5;
-
+        acceleration = 5;
     }
 
     public void update(float dt){
+        //keeps cell from traveling super fast
+        if(velocity.x > maxMovement) velocity.x = maxMovement;
+        if(velocity.y > maxMovement) velocity.y = maxMovement;
+        //adds velocity to position (scaled by dt)
         velocity.scl(dt);
         position.add(velocity.x, velocity.y);
         velocity.scl(1 / dt);
 
+        //update pulse
         pulse += 3*dt;
         if(pulse > Math.PI *2) {
             pulse -= Math.PI*2;
             pulseRipples.add(new Pulse(radius + 4*(float)Math.cos(pulse), 1f));
         }
 
+        //Update pulse ripples (probably only one)
         for(int i = 0; i < pulseRipples.size(); i++){
             pulseRipples.get(i).update(dt);
             if(pulseRipples.get(i).alpha < 0) pulseRipples.remove(i--);
@@ -58,7 +66,6 @@ public class Player {
     public String toString(){
         return
                 Integer.toString(maxMovement) + ", " +
-                Integer.toString(movement) + ", " +
                 position.toString() + ", " +
                 velocity.toString() + ", " +
                 Float.toString(rotation);

@@ -23,13 +23,24 @@ public class MicroGame extends ApplicationAdapter {
 	}
 
 	@Override
+	/*
+	This method is called as fast as possible on loop until
+	the program terminates
+	 */
 	public void render () {
+		//only render if not paused
 		if(!paused) {
+			//First clear the screen
 			Gdx.gl.glClearColor(1, 1, 1, 1);
 			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+			//Delta time is the time since the last frame was drawn
 			float deltaTime = Gdx.graphics.getDeltaTime();
+			//Update game states and draw id dt isn't 0 (prevents divide by 0 errors)
 			if(deltaTime != 0) {
+				//Update all game states
 				gsm.update(deltaTime);
+				//Draw all game states to screen
 				gsm.render(batch);
 			}
 		}

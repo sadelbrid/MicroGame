@@ -39,14 +39,14 @@ public class Play extends State {
             int x = Gdx.input.getX();
             int y = Gdx.input.getY();
             //Move right
-            if(x > cam.viewportWidth/2) player.getVelocity().add(player.speed, 0);
+            if(x > cam.viewportWidth/2) player.getVelocity().add(player.acceleration, 0);
             //Move left
-            else player.getVelocity().sub(player.speed, 0);
+            else player.getVelocity().sub(player.acceleration, 0);
 
             //Move up
-            if(y > cam.viewportHeight/2) player.getVelocity().sub(0, player.speed);
+            if(y > cam.viewportHeight/2) player.getVelocity().sub(0, player.acceleration);
             //Move down
-            else player.getVelocity().add(0, player.speed);
+            else player.getVelocity().add(0, player.acceleration);
         }
     }
 
