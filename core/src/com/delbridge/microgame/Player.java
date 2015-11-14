@@ -41,6 +41,8 @@ public class Player {
         position.add(velocity.x, velocity.y);
         velocity.scl(1 / dt);
 
+        int test;
+
         //update pulse
         pulse += 3*dt;
         if(pulse > Math.PI *2) {

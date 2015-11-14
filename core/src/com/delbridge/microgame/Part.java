@@ -45,6 +45,7 @@ public class Part {
         color = new Color();
         this.cam = cam;
     }
+
     public Part(ArrayList<Point> points, Camera cam) {
         rep = new float[points.size()*2];
         this.numPoints = points.size();
@@ -118,15 +119,15 @@ public class Part {
         s.end();
     }
 
+    /*
+    Translation methods
+     */
+
     public void translateX(float dX) {
         center.x += dX;
         for (int i = 0; i < numPoints; i++)
             rep[2*i] += dX;
     }
-
-    /*
-    Translation methods
-     */
 
     public void translateY(float dY){
         center.y += dY;
