@@ -44,7 +44,7 @@ public class Play extends State {
         random = new Random(System.currentTimeMillis());
         particles = new ArrayList<>();
         for(int i = 0; i< Particle.NUM_PARTICLES; i++){
-            particles.add(new Particle(random.nextInt(MicroGame.WIDTH), random.nextInt(MicroGame.HEIGHT)));
+            particles.add(new Particle(random.nextInt(MicroGame.WIDTH), random.nextInt(MicroGame.HEIGHT), player, cam));
         }
         bullets = new ArrayList<>();
         inputProcessor = new MicroInputProcessor(player, bullets);
@@ -53,6 +53,7 @@ public class Play extends State {
         directionArrow.setColor(new Color(Color.GRAY));
         bacteria = new ArrayList<>();
         totalTime = 0;
+        numBacteriaAlive = 0;
         while(bacteria.size() < 3){
             int temp = random.nextInt(4);
             int x = 0, y = 0;
@@ -75,8 +76,9 @@ public class Play extends State {
                 y = random.nextInt(MicroGame.HEIGHT);
             }
             bacteria.add(new Bacteria(player, MicroGame.WIDTH, MicroGame.HEIGHT, x, y));
+            numBacteriaAlive++;
         }
-        numBacteriaAlive = 3;
+
 
         parameter.size = 50;
         parameter.characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'. ";
@@ -116,7 +118,7 @@ public class Play extends State {
             }
         }
         //Update/spawn bacteria
-        if(numBacteriaAlive < 3){
+        if(bacteria.size() < 1+totalTime/10){
             int temp = random.nextInt(4);
             float x = -MicroGame.WIDTH*.2f, y = -MicroGame.HEIGHT*.2f;
             if(temp == 0){
@@ -184,12 +186,12 @@ public class Play extends State {
             float dis = (float)Math.sqrt(Math.pow(player.getPosition().x - bacteria.get(i).getPosition().x, 2)
                     + Math.pow(player.getPosition().y - bacteria.get(i).getPosition().y, 2));
             if(dis < player.radius+bacteria.get(i).radius){
-                if(!bacteria.get(i).alive) {
-                    bacteria.get(i).abdorbed = true;
-                    player.health += .1;
+                if(!bacteria.get(i).alive && !bacteria.get(i).absorbed) {
+                    bacteria.get(i).absorbed = true;
+                    player.health += .1f;
                 }
-                else{
-                    player.health -= .2;
+                else if (bacteria.get(i).alive){
+                    player.health -= .2f;
                     numBacteriaAlive--;
                     bacteria.remove(i--);
                 }
@@ -202,10 +204,10 @@ public class Play extends State {
             gsm.push(new UponLoss(gsm, totalTime));
             player.alive = false;
         }
-
         cam.position.x = player.getPosition().x;
         cam.position.y = player.getPosition().y;
         cam.update();
+        Gdx.app.log("numalive", "" + numBacteriaAlive);
     }
 
     @Override
@@ -269,7 +271,10 @@ public class Play extends State {
                 sr.circle(b.getPosition().x, b.getPosition().y,
                         p.size);
             }
-            sr.setColor(0, .75f, 0, 1);
+            if(b.alive) sr.setColor(0, .75f, 0, 1);
+            else sr.setColor(0, .5f, 0, .75f);
+
+
             sr.circle(b.getPosition().x, b.getPosition().y, b.radius + 4 * (float) Math.cos(b.pulse));
         }
 
@@ -280,7 +285,7 @@ public class Play extends State {
         sr.setColor(1, 1, 1, .5f);
         sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 20, cam.viewportWidth,
                 20);
-        sr.setColor(1, 1, 1, 1f);
+        sr.setColor(1, 1, 1, .4f);
         sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 20, player.health * cam.viewportWidth,
                 20);
         //draw energy
@@ -298,7 +303,7 @@ public class Play extends State {
         sb.setColor(Color.WHITE);
         if(!loss)
         font.draw(sb, String.format("%.2f", totalTime), player.getPosition().x - cam.viewportWidth*.45f,
-                player.getPosition().y - cam.viewportHeight*.3f);
+                player.getPosition().y + cam.viewportHeight*.35f);
         //Vignette
         //sb.begin();
         sb.setColor(1, 1, 1, .5f);
@@ -314,35 +319,5 @@ public class Play extends State {
         antibody.dispose();
     }
 
-    private class Particle{
-        public static final int MAX_LIFE = 100;
-        public static final int NUM_PARTICLES = 45;
 
-        public float x, y;
-        public float life;
-        public float flow;
-
-        public Particle(int x, int y){
-            this.x = x;
-            this.y = y;
-            life = (int)(Math.random()*30) + 100;
-            flow = (float)(random.nextFloat()*Math.PI*2);
-
-        }
-
-        public void update(float dt){
-            Particle.this.x += 10*dt;
-            Particle.this.y -= 10f*dt;
-            life += 5*dt;
-            flow += dt;
-            if(flow > Math.PI*2) flow -= Math.PI*2;
-
-            //Bounds checking
-            if (x < player.getPosition().x-cam.viewportWidth/2) x += cam.viewportWidth;
-            else if (x > player.getPosition().x + cam.viewportWidth/2) x -= cam.viewportWidth;
-            if (y < player.getPosition().y - cam.viewportHeight/2) y += cam.viewportHeight;
-            else if (y > player.getPosition().y + cam.viewportHeight/2) y -= cam.viewportHeight;
-
-        }
-    }
 }

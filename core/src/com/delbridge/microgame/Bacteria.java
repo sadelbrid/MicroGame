@@ -17,7 +17,8 @@ public class Bacteria {
     float angle;
     Player player;
     boolean alive;
-    boolean abdorbed;
+    boolean absorbed;
+    boolean drained;
     public Bacteria(Player p, int w, int h, int x, int y){
         position = new Vector2(x, y);
         velocity = new Vector2(0, 0);
@@ -25,11 +26,12 @@ public class Bacteria {
         radius = h*.05f;
         pulse = (float)(Math.random()*Math.PI*2);
         pulseRipples = new ArrayList<>();
-        speed = (float)(Math.random()*.5f + .3f);
+        speed = (float)(Math.random()*.8f + .3f);
         angle = 0;
         player = p;
         alive = true;
-        abdorbed = false;
+        absorbed = false;
+        drained = false;
     }
 
     public void update(float dt){
@@ -62,7 +64,7 @@ public class Bacteria {
             if(pulseRipples.get(i).alpha < 0) pulseRipples.remove(i--);
         }
 
-        if(abdorbed) radius -= 20*dt;
+        if(absorbed) radius -= 20*dt;
     }
 
     public Vector2 getPosition() {

@@ -37,13 +37,6 @@ public class MicroInputProcessor implements InputProcessor {
             player.joyStick.touchPointer = pointer;
             player.joyStick.touching = true;
 
-//            float scalex = (float)Gdx.graphics.getWidth() / (float)MicroGame.WIDTH;
-//            float scaley = (float)Gdx.graphics.getHeight() / (float)MicroGame.HEIGHT;
-//
-//            player.joyStick.position.x = (float)screenX/scalex;
-//            player.joyStick.position.y = (float)screenY/scaley;
-//            player.joyStick.position.y = MicroGame.HEIGHT - player.joyStick.position.y;
-
             screenY = Gdx.graphics.getHeight() - screenY;
             double deltaX = screenX - player.joyStick.position.x;
             double deltaY = screenY - player.joyStick.position.y;

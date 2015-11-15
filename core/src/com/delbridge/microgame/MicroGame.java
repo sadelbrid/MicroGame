@@ -19,7 +19,7 @@ public class MicroGame extends ApplicationAdapter {
 		paused = false;
 		gsm = new GameStateManager();
 		gsm.currentState = GameStateManager.MENU;
-		gsm.push(new Play(gsm));
+		gsm.push(new Menu(gsm));
 	}
 
 	@Override
