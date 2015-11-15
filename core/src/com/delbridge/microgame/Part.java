@@ -176,6 +176,11 @@ public class Part {
         this.center.x = temp;
     }
 
+    public void setRotation(double angleRad){
+        double amount = angleRad - rotation;
+        rotate((float)amount);
+    }
+
     public void changeSize(float amount) {
         radius += amount;
         rep = new float[numPoints*2];

@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -18,8 +20,19 @@ public class Play extends State {
     ShapeRenderer sr;
     Texture vignette;
     Texture bg;
+    Texture antibody;
     ArrayList<Particle> particles;
+    ArrayList<Bullet> bullets;
+    ArrayList<Bacteria> bacteria;
+    int numBacteriaAlive;
     Random random;
+    MicroInputProcessor inputProcessor;
+    Part directionArrow;
+    float totalTime;
+    private FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("corbel.ttf"));
+    private FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+    private BitmapFont font;
+    boolean loss;
     public Play(GameStateManager gsm){
         super(gsm);
         player = new Player(MicroGame.WIDTH, MicroGame.HEIGHT);
@@ -27,40 +40,167 @@ public class Play extends State {
         cam.setToOrtho(false, MicroGame.WIDTH, MicroGame.HEIGHT);
         vignette = new Texture("vignette.png");
         bg = new Texture("background.png");
+        antibody = new Texture("antibody.png");
         random = new Random(System.currentTimeMillis());
         particles = new ArrayList<>();
         for(int i = 0; i< Particle.NUM_PARTICLES; i++){
             particles.add(new Particle(random.nextInt(MicroGame.WIDTH), random.nextInt(MicroGame.HEIGHT)));
         }
+        bullets = new ArrayList<>();
+        inputProcessor = new MicroInputProcessor(player, bullets);
+        Gdx.input.setInputProcessor(inputProcessor);
+        directionArrow = new Part(3, 10, Part.TYPE_POLY, player.getPosition().x, player.getPosition().y, cam);
+        directionArrow.setColor(new Color(Color.GRAY));
+        bacteria = new ArrayList<>();
+        totalTime = 0;
+        while(bacteria.size() < 3){
+            int temp = random.nextInt(4);
+            int x = 0, y = 0;
+            if(temp == 0){
+                //top
+                y = MicroGame.HEIGHT;
+                x = random.nextInt(MicroGame.WIDTH);
+            }
+            else if(temp == 1){
+                //right
+                x = MicroGame.WIDTH;
+                y = random.nextInt(MicroGame.HEIGHT);
+            }
+            else if(temp == 2){
+                //bottom
+                x = random.nextInt(MicroGame.WIDTH);
+            }
+            else{
+                //left
+                y = random.nextInt(MicroGame.HEIGHT);
+            }
+            bacteria.add(new Bacteria(player, MicroGame.WIDTH, MicroGame.HEIGHT, x, y));
+        }
+        numBacteriaAlive = 3;
+
+        parameter.size = 50;
+        parameter.characters = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'. ";
+
+        font = generator.generateFont(parameter);
+        generator.dispose();
+        loss = false;
     }
     @Override
     protected void handleInput() {
-        if(Gdx.input.isTouched()){
-            int x = Gdx.input.getX();
-            int y = Gdx.input.getY();
-            //Move right
-            if(x > cam.viewportWidth/2) player.getVelocity().add(player.acceleration, 0);
-            //Move left
-            else player.getVelocity().sub(player.acceleration, 0);
-
-            //Move up
-            if(y > cam.viewportHeight/2) player.getVelocity().sub(0, player.acceleration);
-            //Move down
-            else player.getVelocity().add(0, player.acceleration);
-        }
     }
 
 
 
     @Override
     public void update(float dt) {
-        handleInput();
+        totalTime += dt;
         player.update(dt);
 
+        //update direction arrow
+        directionArrow.setRotation(player.joyStick.angle);
         //Update particles
         for (int i = 0; i < Particle.NUM_PARTICLES; i++) {
             particles.get(i).update(dt);
+        }
 
+        //Update bullets
+        for (int i = 0; i < bullets.size(); i++) {
+            bullets.get(i).update(dt);
+            if(bullets.get(i).x < player.getPosition().x - cam.viewportWidth/2 ||
+                    bullets.get(i).x > player.getPosition().x + cam.viewportWidth/2 ||
+                    bullets.get(i).y < player.getPosition().y - cam.viewportHeight/2 ||
+                    bullets.get(i).y > player.getPosition().y + cam.viewportHeight/2){
+
+                bullets.remove(i--);
+
+            }
+        }
+        //Update/spawn bacteria
+        if(numBacteriaAlive < 3){
+            int temp = random.nextInt(4);
+            float x = -MicroGame.WIDTH*.2f, y = -MicroGame.HEIGHT*.2f;
+            if(temp == 0){
+                //top
+                y = MicroGame.HEIGHT * 1.2f;
+                x = random.nextInt(MicroGame.WIDTH);
+            }
+            else if(temp == 1){
+                //right
+                x = MicroGame.WIDTH*1.2f;
+                y = random.nextInt(MicroGame.HEIGHT);
+            }
+            else if(temp == 2){
+                //bottom
+                x = random.nextInt(MicroGame.WIDTH);
+            }
+            else{
+                //left
+                y = random.nextInt(MicroGame.HEIGHT);
+            }
+            bacteria.add(new Bacteria(player, MicroGame.WIDTH, MicroGame.HEIGHT, (int)x, (int)y));
+            numBacteriaAlive++;
+        }
+
+        for (int i = 0; i <bacteria.size(); i++){
+            bacteria.get(i).update(dt);
+            if(bacteria.get(i).radius < 0 || bacteria.get(i).getPosition().x < player.getPosition().x - cam.viewportWidth*.8 ||
+                    bacteria.get(i).getPosition().x > player.getPosition().x + cam.viewportWidth*.8 ||
+                    bacteria.get(i).getPosition().y < player.getPosition().y - cam.viewportHeight*.8 ||
+                    bacteria.get(i).getPosition().y > player.getPosition().y + cam.viewportHeight*.8){
+                if(bacteria.get(i).alive) numBacteriaAlive--;
+                bacteria.remove(i--);
+
+            }
+        }
+
+        //Update bullets
+        for (int i = 0; i < bullets.size(); i++) {
+            boolean hit = false;
+            bullets.get(i).update(dt);
+            //Check for collision with bacteria
+            for(int j = 0; j < bacteria.size(); j++){
+                float dis = (float)Math.sqrt(Math.pow(
+                        bullets.get(i).x
+                        - bacteria.get(j).getPosition().x, 2)
+                        + Math.pow(bullets.get(i).y
+                        - bacteria.get(j).getPosition().y, 2));
+                if(dis < bacteria.get(j).radius){
+                    //hit
+                    hit = true;
+                    bacteria.get(j).alive = false;
+                    numBacteriaAlive--;
+                }
+            }
+
+            if(hit || bullets.get(i).x < player.getPosition().x - cam.viewportWidth*.65 ||
+                    bullets.get(i).x > player.getPosition().x + cam.viewportWidth*.65 ||
+                    bullets.get(i).y < player.getPosition().y - cam.viewportHeight*.65 ||
+                    bullets.get(i).y > player.getPosition().y + cam.viewportHeight*.65)
+                bullets.remove(i--);
+        }
+
+        //Check if player can absorb
+        for(int i = 0; i<bacteria.size(); i++){
+            float dis = (float)Math.sqrt(Math.pow(player.getPosition().x - bacteria.get(i).getPosition().x, 2)
+                    + Math.pow(player.getPosition().y - bacteria.get(i).getPosition().y, 2));
+            if(dis < player.radius+bacteria.get(i).radius){
+                if(!bacteria.get(i).alive) {
+                    bacteria.get(i).abdorbed = true;
+                    player.health += .1;
+                }
+                else{
+                    player.health -= .2;
+                    numBacteriaAlive--;
+                    bacteria.remove(i--);
+                }
+            }
+        }
+
+        //Check for death
+        if(player.health<=0 && !loss) {
+            loss = true;
+            gsm.push(new UponLoss(gsm, totalTime));
+            player.alive = false;
         }
 
         cam.position.x = player.getPosition().x;
@@ -91,21 +231,76 @@ public class Play extends State {
             sr.circle(player.getPosition().x, player.getPosition().y,
                     p.size);
         }
-        sr.setColor(1, 1, 1, 1f);
+        sr.setColor(.75f + player.health/4, .75f + player.health/4, .75f + player.health/4, 1f);
         sr.circle(player.getPosition().x, player.getPosition().y,
                 player.radius + 4 * (float) Math.cos(player.pulse));
 
+        if(player.alive) {
+            sr.setColor(directionArrow.color);
+            sr.triangle(directionArrow.rep[0] + player.getPosition().x - cam.viewportWidth / 2,
+                    directionArrow.rep[1] + player.getPosition().y - cam.viewportHeight / 2,
+                    directionArrow.rep[2] + player.getPosition().x - cam.viewportWidth / 2,
+                    directionArrow.rep[3] + player.getPosition().y - cam.viewportHeight / 2,
+                    directionArrow.rep[4] + player.getPosition().x - cam.viewportWidth / 2,
+                    directionArrow.rep[5] + player.getPosition().y - cam.viewportHeight / 2);
+        }
 
         //draw particles
         for(int i = 0; i< Particle.NUM_PARTICLES; i++){
-            sr.setColor(100f/255f, 225f/255f, 150f/255f, (float)Math.abs(Math.sin(particles.get(i).flow)));
-            sr.rect(particles.get(i).x, particles.get(i).y, 3, 3);
+            sr.setColor(255/255f, 120f/255f, 120f/255f, (float)Math.abs(Math.sin(particles.get(i).flow)));
+            sr.rect(particles.get(i).x, particles.get(i).y, 6, 6);
         }
 
+        //draw bullets
         sr.end();
-
-        //Vignette
         sb.begin();
+        for(int i = 0; i< bullets.size(); i++){
+            sb.draw(antibody, bullets.get(i).x-antibody.getWidth()/2, bullets.get(i).y, antibody.getWidth() / 2, 0,
+                    antibody.getWidth(), antibody.getHeight(), 1, 1, (float)player.joyStick.angle, 0, 0, antibody.getWidth(),
+                    antibody.getHeight(), false, false);
+        }
+        sb.end();
+
+        //draw bacteria
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        for(Bacteria b : bacteria){
+            for(Bacteria.Pulse p : b.pulseRipples) {
+                sr.setColor(0, .75f, 0f, p.alpha);
+                sr.circle(b.getPosition().x, b.getPosition().y,
+                        p.size);
+            }
+            sr.setColor(0, .75f, 0, 1);
+            sr.circle(b.getPosition().x, b.getPosition().y, b.radius + 4 * (float) Math.cos(b.pulse));
+        }
+
+        //draw energ/health
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        //Draw health
+        sr.setColor(1, 1, 1, .5f);
+        sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 20, cam.viewportWidth,
+                20);
+        sr.setColor(1, 1, 1, 1f);
+        sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 20, player.health * cam.viewportWidth,
+                20);
+        //draw energy
+
+        sr.setColor(0, .6f, 1, .5f);
+        sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 40, cam.viewportWidth,
+                20);
+        sr.setColor(0, .6f, 1, .4f);
+        sr.rect(player.getPosition().x - cam.viewportWidth / 2, player.getPosition().y + cam.viewportHeight / 2 - 40, player.energy * cam.viewportWidth,
+                20);
+        sr.end();
+        player.joyStick.draw(sr, cam);
+
+        sb.begin();
+        sb.setColor(Color.WHITE);
+        if(!loss)
+        font.draw(sb, String.format("%.2f", totalTime), player.getPosition().x - cam.viewportWidth*.45f,
+                player.getPosition().y - cam.viewportHeight*.3f);
+        //Vignette
+        //sb.begin();
         sb.setColor(1, 1, 1, .5f);
         sb.draw(vignette, player.getPosition().x - cam.viewportWidth/2, player.getPosition().y - cam.viewportHeight/2);
         sb.end();
@@ -116,6 +311,7 @@ public class Play extends State {
         sr.dispose();
         vignette.dispose();
         bg.dispose();
+        antibody.dispose();
     }
 
     private class Particle{
@@ -149,5 +345,4 @@ public class Play extends State {
 
         }
     }
-
 }
